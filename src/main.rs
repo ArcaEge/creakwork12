@@ -1,16 +1,17 @@
 use one_euro_rs::OneEuroFilter;
-use std::{thread::sleep, time::Duration};
+use std::{thread::sleep, time::Duration, u64};
 
 mod audio;
 mod hinge;
 
-const CREAK_HIGH_THRESHOLD: f64 = 0.015;
-const CREAK_LOW_THRESHOLD: f64 = 0.001;
-const DELAY: u64 = 50;
+const CREAK_HIGH_THRESHOLD: f64 = 0.02;
+const CREAK_LOW_THRESHOLD: f64 = 0.002;
+const DELAY: u64 = 75;
 const FREQUENCY: f64 = 1000.0 / DELAY as f64;
-const CUTOFF_MIN: f64 = 1.0;
-const CUTOFF_D: f64 = 0.4;
+const CUTOFF_MIN: f64 = 0.8;
+const CUTOFF_D: f64 = 0.0;
 const BETA: f64 = 0.001;
+const STATE_DELAY: u64 = 1;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Welcome to creakwork12");
@@ -21,6 +22,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut one_euro = OneEuroFilter::new(FREQUENCY, CUTOFF_MIN, CUTOFF_D, BETA);
 
     let mut last_reading = h.get_reading();
+    let mut state = State::Inactive;
+    let mut last_state_changed = STATE_DELAY;
 
     loop {
         sleep(Duration::from_millis(DELAY));
@@ -40,12 +43,48 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         rec.log("filtered_ddiff", &rerun::Scalars::new([filtered_ddiff]))
             .unwrap();
 
-        if filtered_ddiff.abs() >= CREAK_HIGH_THRESHOLD {
-            a.play();
-        } else {
-            a.pause();
+        match state {
+            State::Inactive => {
+                if filtered_ddiff.abs() >= CREAK_HIGH_THRESHOLD {
+                    if filtered_ddiff > 0.0 {
+                        state = State::Positive;
+                    } else {
+                        state = State::Negative;
+                    }
+
+                    last_state_changed = 0;
+                }
+            }
+            State::Positive => {
+                if filtered_ddiff < CREAK_LOW_THRESHOLD {
+                    state = State::Inactive;
+                    last_state_changed = STATE_DELAY;
+                }
+            }
+            State::Negative => {
+                if -filtered_ddiff < CREAK_LOW_THRESHOLD {
+                    state = State::Inactive;
+                    last_state_changed = STATE_DELAY;
+                }
+            }
+        }
+
+        if last_state_changed >= STATE_DELAY {
+            if let State::Inactive = state {
+                a.pause();
+            } else {
+                a.play();
+            }
         }
 
         last_reading = reading;
+        last_state_changed += 1;
     }
+}
+
+#[derive(Debug)]
+enum State {
+    Inactive,
+    Positive,
+    Negative,
 }
