@@ -41,4 +41,8 @@ impl Audio {
     pub fn pause(&self) {
         self.player.pause();
     }
+
+    pub fn set_speed(&self, speed: f32) {
+        self.player.set_speed(speed);
+    }
 }
