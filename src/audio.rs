@@ -1,8 +1,9 @@
-use rodio::{Decoder, DeviceSinkBuilder, Player, Source};
+use rodio::{Decoder, DeviceSinkBuilder, MixerDeviceSink, Player, Source};
 use std::io::Cursor;
 
 pub struct Audio {
     player: Player,
+    _handle: MixerDeviceSink,
 }
 
 impl Audio {
@@ -27,7 +28,10 @@ impl Audio {
         player.append(creak);
         player.pause();
 
-        Self { player }
+        Self {
+            player,
+            _handle: handle,
+        }
     }
 
     pub fn play(&self) {
