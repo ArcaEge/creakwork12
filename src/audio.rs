@@ -38,10 +38,6 @@ impl Audio {
         self.player.play();
     }
 
-    pub fn is_paused(&self) -> bool {
-        self.player.is_paused()
-    }
-
     pub fn pause(&self) {
         self.player.pause();
     }
