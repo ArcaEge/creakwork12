@@ -6,5 +6,4 @@ edition = "2024"
 [dependencies]
 industrial-io = "0.6.1"
 one-euro-rs = "0.2.0"
-rerun = "0.35.0"
 rodio = { version = "0.22.2", features = ["playback", "wav"] }

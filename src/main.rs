@@ -13,14 +13,16 @@ const CUTOFF_D: f64 = 0.0;
 const BETA: f64 = 0.001;
 const STATE_DELAY: u64 = 1;
 
-const AUDIO_LOWEST_SPEED: f32 = 1.0;
-const AUDIO_LOWEST_SPEED_AT: f64 = CREAK_LOW_THRESHOLD;
-const AUDIO_HIGHEST_SPEED: f32 = 1.3;
-const AUDIO_HIGHEST_SPEED_AT: f64 = 0.4;
+const AUDIO_LOWEST_SPEED: f32 = 0.8;
+const AUDIO_HIGHEST_SPEED: f32 = 1.6;
+
+const AUDIO_LOWEST_VOLUME: f32 = 0.5;
+const AUDIO_LOWEST_VOLUME_AT: f64 = CREAK_LOW_THRESHOLD;
+const AUDIO_HIGHEST_VOLUME: f32 = 1.0;
+const AUDIO_HIGHEST_VOLUME_AT: f64 = 0.2;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("welcome to creakwork12");
-    let rec = rerun::RecordingStreamBuilder::new("angle").spawn()?;
 
     let h = hinge::Hinge::new();
     let a = audio::Audio::new();
@@ -43,11 +45,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let ddiff = diff / DELAY as f64;
         let filtered_ddiff = one_euro.filter(ddiff);
 
-        rec.log("diff/delay", &rerun::Scalars::new([ddiff]))
-            .unwrap();
-        rec.log("filtered_ddiff", &rerun::Scalars::new([filtered_ddiff]))
-            .unwrap();
-
         match state {
             State::Inactive => {
                 if filtered_ddiff.abs() >= CREAK_HIGH_THRESHOLD {
@@ -58,6 +55,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
 
                     last_state_changed = 0;
+
+                    if filtered_ddiff.abs() >= 0.05 {
+                        last_state_changed = STATE_DELAY + 1;
+                    }
                 }
             }
             State::Positive => {
@@ -79,7 +80,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 a.pause();
             } else {
                 a.play();
-                a.set_speed(diff_to_speed(filtered_ddiff));
+                a.set_speed(angle_to_speed(reading));
+                a.set_volume(diff_to_volume(filtered_ddiff));
             }
         }
 
@@ -88,14 +90,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-pub fn diff_to_speed(diff: f64) -> f32 {
+pub fn angle_to_speed(angle: i64) -> f32 {
+    (angle as f32 / 360.0) * (AUDIO_HIGHEST_SPEED - AUDIO_LOWEST_SPEED) + AUDIO_LOWEST_SPEED
+}
+
+pub fn diff_to_volume(diff: f64) -> f32 {
     ((diff
         .abs()
-        .clamp(AUDIO_LOWEST_SPEED_AT, AUDIO_HIGHEST_SPEED_AT)
-        - AUDIO_LOWEST_SPEED_AT)
-        / (AUDIO_HIGHEST_SPEED_AT - AUDIO_LOWEST_SPEED_AT)) as f32
-        * (AUDIO_HIGHEST_SPEED - AUDIO_LOWEST_SPEED)
-        + AUDIO_LOWEST_SPEED
+        .clamp(AUDIO_LOWEST_VOLUME_AT, AUDIO_HIGHEST_VOLUME_AT)
+        - AUDIO_LOWEST_VOLUME_AT)
+        / (AUDIO_HIGHEST_VOLUME_AT - AUDIO_LOWEST_VOLUME_AT)) as f32
+        * (AUDIO_HIGHEST_VOLUME - AUDIO_LOWEST_VOLUME)
+        + AUDIO_LOWEST_VOLUME
 }
 
 #[derive(Debug)]

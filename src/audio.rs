@@ -45,4 +45,8 @@ impl Audio {
     pub fn set_speed(&self, speed: f32) {
         self.player.set_speed(speed);
     }
+
+    pub fn set_volume(&self, volume: f32) {
+        self.player.set_volume(volume);
+    }
 }
