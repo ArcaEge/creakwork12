@@ -1,29 +1,35 @@
-use rodio::{Decoder, DeviceSinkBuilder, Player, Source};
-use std::io::Cursor;
-use std::thread::sleep;
+use std::{thread::sleep, time::Duration};
 
-fn main() {
-    let mut handle = DeviceSinkBuilder::open_default_sink().expect("open default audio sink");
-    handle.log_on_drop(false);
+mod audio;
+mod hinge;
 
-    let player = Player::connect_new(&handle.mixer());
+const CREAK_THRESHOLD: u64 = 1;
 
-    let creak_file = include_bytes!("../assets/creak.wav");
-    let creak_cursor = Cursor::new(creak_file);
-    let creak = Decoder::builder()
-        .with_data(creak_cursor)
-        .with_hint("wav")
-        .with_gapless(true)
-        .build()
-        .expect("decode creak")
-        .repeat_infinite();
+fn main() -> ! {
+    let h = hinge::Hinge::new();
+    let a = audio::Audio::new();
 
-    player.append(creak);
+    let mut last_reading = h.get_reading();
+
+    loop {
+        sleep(Duration::from_millis(100));
+
+        let reading = h.get_reading();
+        let diff = reading.abs_diff(last_reading);
+        // println!("")
+
+        if diff >= CREAK_THRESHOLD && a.is_paused() {
+            a.play();
+        } else {
+            a.pause();
+        }
+
+        last_reading = reading;
+    }
+
+    // sleep(std::time::Duration::from_millis(5000));
     // player.pause();
-
-    sleep(std::time::Duration::from_millis(5000));
-    player.pause();
-    sleep(std::time::Duration::from_millis(500));
-    player.play();
-    sleep(std::time::Duration::from_millis(5000));
+    // sleep(std::time::Duration::from_millis(500));
+    // player.play();
+    // sleep(std::time::Duration::from_millis(5000));
 }
