@@ -21,6 +21,6 @@ funny
 
 ## how to
 
-there is an executable in the releases tab. download it, do the usual `chmod +x` and run. enjoy
+there is an executable in the releases tab. download it, do the usual `chmod +x` and run. enjoy. note: this was built on fedora, so your mileage may vary on other distros - there might be dynamic linking issues.
 
 or git clone and do `cargo run`. you'll have to install `libiio-devel` and `alsa-lib-devel` first though if you do that (or `libasound2-dev` and `libalsa-dev` on debian/ubuntu)
